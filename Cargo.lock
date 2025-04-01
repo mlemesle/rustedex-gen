@@ -2019,6 +2019,7 @@ dependencies = [
  "clap",
  "dotenvy",
  "flume",
+ "futures-util",
  "inquire",
  "rustemon",
  "serde",

@@ -23,7 +23,7 @@ async fn main() -> anyhow::Result<()> {
     generators::generate_rustedex(&args.export_path, gc).await?;
 
     if args.serve {
-        println!("Web server available !");
+        println!("Web server available at http://localhost:3030/index.html");
         let route = warp::fs::dir(args.export_path);
         warp::serve(route).bind(([0, 0, 0, 0], 3030)).await;
     }
