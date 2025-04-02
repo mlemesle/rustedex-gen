@@ -1,14 +1,3 @@
-@font-face {
-    font-family: "Pokemon Solid";
-    src: url("/static/fonts/pokemonsolid.ttf") format("truetype");
-    font-weight: normal;
-    font-style: normal;
-}
-
-.pokemon-font {
-    font-family: "Pokemon Solid", sans-serif;
-}
-
 /* Type Colors */
 .grass {
     background-color: #78c850;
@@ -65,11 +54,56 @@
     background-color: #b8b8d0;
 }
 
-/* In static/pokedex.css, add this after the type colors */
-.sprite:not[src] {
-    visibility: hidden; /* Start invisible */
-    transition: visibility 0.3s ease-in; /* Smooth fade-in */
+/* Effort point badge colors (Pokémon palette) */
+.effort-hp {
+    background-color: #ff0000;
+} /* Red - HP bar from games */
+.effort-attack {
+    background-color: #f08030;
+} /* Orange - Fire type, physical power */
+.effort-defense {
+    background-color: #f8d030;
+} /* Yellow - Sturdy, defensive */
+.effort-special-attack {
+    background-color: #6890f0;
+} /* Blue - Psychic/Water, special energy */
+.effort-special-defense {
+    background-color: #78c850;
+} /* Green - Grass, natural resilience */
+.effort-speed {
+    background-color: #f85888;
+} /* Pinkish-Purple - Speedy Electric vibe */
+
+/* Index card styles */
+.pokemon-card > div {
+    flex: 1; /* Allow text container to take available space */
+    min-width: 0; /* Prevent overflow by allowing shrinkage */
 }
-.sprite[src] {
-    visibility: visible; /* Fade to visible once loaded */
+.pokemon-card h3 {
+    white-space: nowrap; /* Keep name on one line */
+    overflow: hidden; /* Hide excess text */
+    text-overflow: ellipsis; /* Add "..." for truncated text */
+}
+
+/* Sprite size for index.html */
+.pokemon-card.index-card img {
+    max-width: 100%; /* Ensure sprite fits 1/3 width */
+    height: auto; /* Maintain aspect ratio */
+    margin-right: 0; /* Removed, handled by pl-3 in text div */
+}
+
+/* Sprite size for pokemon.html */
+.pokemon-card.pokemon-page img {
+    width: clamp(128px, 35vw, 384px); /* Bigger for Pokémon page */
+    height: clamp(128px, 35vw, 384px);
+    margin-right: 0.75rem; /* Consistent mr-3 */
+}
+
+/* Pokemon ID card specific styles */
+.pokemon-card dl dt {
+    /* No margin-right, handled by gap in flex */
+}
+.pokemon-card dl dd {
+    margin-left: 0; /* Remove default indent */
+    color: #4b5563; /* Match text-gray-600 */
 }

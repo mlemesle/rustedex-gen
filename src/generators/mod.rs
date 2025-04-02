@@ -5,13 +5,14 @@ use rustemon::{
     Follow,
     client::RustemonClient,
     model::{
-        pokemon::{Pokemon, PokemonSpecies},
-        resource::NamedApiResource,
+        pokemon::{Genus, Pokemon, PokemonSpecies},
+        resource::{Name, NamedApiResource},
     },
 };
 use tera::Tera;
 
 mod index;
+mod pokemon;
 
 #[derive(Clone)]
 pub struct GeneratorContext {
@@ -33,15 +34,32 @@ pub struct PokemonSpecie {
     s: PokemonSpecies,
 }
 
-pub async fn generate_rustedex(rustedex_path: &Path, gc: GeneratorContext) -> anyhow::Result<()> {
-    let pokemon_species = get_all_pokemon_species(&gc).await?;
-    index::generate(rustedex_path, gc, &pokemon_species).await?;
+pub async fn generate_rustedex(
+    rustedex_path: &Path,
+    gc: GeneratorContext,
+    dev: bool,
+) -> anyhow::Result<()> {
+    let pokemon_species = get_all_pokemon_species(&gc, dev).await?;
+    index::generate(rustedex_path, gc.clone(), &pokemon_species).await?;
+    pokemon::generate(
+        rustedex_path.join("pokemon"),
+        gc,
+        pokemon_species.as_slice(),
+    )
+    .await?;
 
     Ok(())
 }
 
-async fn get_all_pokemon_species(gc: &GeneratorContext) -> anyhow::Result<Vec<PokemonSpecie>> {
-    let pokemon_entries = rustemon::pokemon::pokemon::get_all_entries(&gc.rc).await?;
+async fn get_all_pokemon_species(
+    gc: &GeneratorContext,
+    dev: bool,
+) -> anyhow::Result<Vec<Arc<PokemonSpecie>>> {
+    let mut pokemon_entries = rustemon::pokemon::pokemon::get_all_entries(&gc.rc).await?;
+    if dev {
+        pokemon_entries.truncate(10);
+    }
+
     let (npt_sndr, npt_rcvr) = flume::unbounded::<NamedApiResource<Pokemon>>();
     let (tpt_sndr, tpt_rcvr) = flume::unbounded::<anyhow::Result<PokemonSpecie>>();
 
@@ -76,14 +94,41 @@ async fn get_all_pokemon_species(gc: &GeneratorContext) -> anyhow::Result<Vec<Po
         });
     }
 
-    for pokemon_entry in pokemon_entries.into_iter().take(10) {
+    for pokemon_entry in pokemon_entries {
         npt_sndr.send_async(pokemon_entry).await?;
     }
     drop(npt_sndr);
     drop(tpt_sndr);
 
-    let mut pokemon_species: Vec<PokemonSpecie> = tpt_rcvr.into_stream().try_collect().await?;
+    let mut pokemon_species: Vec<Arc<PokemonSpecie>> = tpt_rcvr
+        .into_stream()
+        .map_ok(Arc::new)
+        .try_collect()
+        .await?;
     pokemon_species.sort_by_key(|ps| ps.p.order);
 
     Ok(pokemon_species)
+}
+
+trait FindTrad
+where
+    Self: IntoIterator,
+{
+    fn find_trad(&self, type_: &str, id: i64) -> anyhow::Result<String>;
+}
+
+impl FindTrad for Vec<Name> {
+    fn find_trad(&self, type_: &str, id: i64) -> anyhow::Result<String> {
+        self.iter()
+            .find_map(|n| (n.language.name == "en").then_some(n.name.clone()))
+            .ok_or_else(|| anyhow::anyhow!("Can't find trad for {type_} for {id}"))
+    }
+}
+
+impl FindTrad for Vec<Genus> {
+    fn find_trad(&self, type_: &str, id: i64) -> anyhow::Result<String> {
+        self.iter()
+            .find_map(|n| (n.language.name == "en").then_some(n.genus.clone()))
+            .ok_or_else(|| anyhow::anyhow!("Can't find trad for {type_} for {id}"))
+    }
 }

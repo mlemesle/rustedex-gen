@@ -9,5 +9,5 @@ pub struct Args {
     #[arg(short, long, env)]
     pub static_path: PathBuf,
     #[arg(long, env)]
-    pub serve: bool,
+    pub dev: bool,
 }

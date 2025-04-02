@@ -15,18 +15,13 @@ pub async fn export(export_path: &PathBuf, static_path: PathBuf) -> anyhow::Resu
     }
 
     fs::create_dir(export_path).await?;
+    fs::create_dir(export_path.join("pokemon")).await?;
 
     let static_export_path = export_path.join("static");
     fs::create_dir(&static_export_path).await?;
-    fs::create_dir(static_export_path.join("fonts")).await?;
     fs::copy(
         static_path.join("pokedex.css"),
         static_export_path.join("pokedex.css"),
-    )
-    .await?;
-    fs::copy(
-        static_path.join("fonts/pokemonsolid.ttf"),
-        static_export_path.join("fonts/pokemonsolid.ttf"),
     )
     .await?;
 

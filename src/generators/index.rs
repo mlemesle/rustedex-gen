@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{path::Path, sync::Arc};
 
 use serde::Serialize;
 use tokio::fs;
@@ -23,7 +23,7 @@ struct PokemonCard<'a> {
 pub(super) async fn generate(
     p: &Path,
     gc: GeneratorContext,
-    pokemon_species: &[PokemonSpecie],
+    pokemon_species: &[Arc<PokemonSpecie>],
 ) -> anyhow::Result<()> {
     let pokemon_cards = pokemon_species
         .iter()
