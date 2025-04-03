@@ -1,10 +1,7 @@
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-use futures_util::{StreamExt, TryStreamExt, stream};
+use futures_util::{TryStreamExt, stream};
+use indicatif::{ProgressBar, ProgressDrawTarget};
 use rustemon::Follow;
 use serde::Serialize;
 use tokio::fs;
@@ -42,14 +39,18 @@ pub(super) async fn generate(
     p: PathBuf,
     gc: GeneratorContext,
     pokemon_species: &[Arc<PokemonSpecie>],
+    pg: ProgressBar,
 ) -> anyhow::Result<()> {
-    stream::FuturesUnordered::from_iter(
-        pokemon_species
-            .iter()
-            .map(async |ps| generate_pokemon_id(p.clone(), gc.clone(), Arc::clone(ps)).await),
-    )
+    pg.set_length(pokemon_species.len() as u64);
+    pg.set_message("Generating pokemon pages");
+    pg.set_draw_target(ProgressDrawTarget::stdout());
+    stream::FuturesUnordered::from_iter(pokemon_species.iter().map(async |ps| {
+        generate_pokemon_id(p.clone(), gc.clone(), Arc::clone(ps), pg.clone()).await
+    }))
     .try_collect::<()>()
     .await?;
+
+    pg.finish();
 
     Ok(())
 }
@@ -58,6 +59,7 @@ async fn generate_pokemon_id(
     p: PathBuf,
     gc: GeneratorContext,
     ps: Arc<PokemonSpecie>,
+    pg: ProgressBar,
 ) -> anyhow::Result<()> {
     let (Some(name), Some(french_name), Some(japanese_name), Some(japanese_romanized)) =
         ps.s.names
@@ -147,6 +149,8 @@ async fn generate_pokemon_id(
         })?,
         f,
     )?;
+
+    pg.inc(1);
 
     Ok(())
 }

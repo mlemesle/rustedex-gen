@@ -1,5 +1,6 @@
 use std::{path::Path, sync::Arc};
 
+use indicatif::{ProgressBar, ProgressDrawTarget};
 use serde::Serialize;
 use tokio::fs;
 
@@ -24,10 +25,15 @@ pub(super) async fn generate(
     p: &Path,
     gc: GeneratorContext,
     pokemon_species: &[Arc<PokemonSpecie>],
+    pg: ProgressBar,
 ) -> anyhow::Result<()> {
+    pg.set_length(pokemon_species.len() as u64);
+    pg.set_message("Generating cards for index");
+    pg.set_draw_target(ProgressDrawTarget::stdout());
     let pokemon_cards = pokemon_species
         .iter()
         .map(|ps| {
+            pg.inc(1);
             Ok(PokemonCard {
                 id: ps.p.id,
                 pokedex_number: ps.s.order,
@@ -63,6 +69,8 @@ pub(super) async fn generate(
         })?,
         f,
     )?;
+
+    pg.finish();
 
     Ok(())
 }

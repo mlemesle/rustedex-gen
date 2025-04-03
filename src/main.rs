@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use clap::Parser;
 use rustedex_gen::{
     args::Args,
@@ -20,7 +22,9 @@ async fn main() -> anyhow::Result<()> {
     let gc = GeneratorContext::new(rc, t);
 
     println!("Generating Rustedex...");
+    let now = Instant::now();
     generators::generate_rustedex(&args.export_path, gc, args.dev).await?;
+    println!("Generated static files in {:?}", now.elapsed());
 
     if args.dev {
         println!("Web server available at http://localhost:3030/index.html");
