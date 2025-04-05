@@ -94,8 +94,8 @@
 
 /* Sprite size for pokemon.html */
 .pokemon-card.pokemon-page img {
-    width: clamp(128px, 35vw, 384px); /* Bigger for Pokémon page */
-    height: clamp(128px, 35vw, 384px);
+    width: clamp(96px, 25vw, 256px); /* Reduced from 384px max */
+    height: clamp(96px, 25vw, 256px);
     margin-right: 0.75rem; /* Consistent mr-3 */
 }
 

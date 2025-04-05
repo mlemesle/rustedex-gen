@@ -1,7 +1,6 @@
 use std::{path::Path, sync::Arc};
 
-use futures_util::TryStreamExt;
-use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
+use futures_util::{StreamExt, TryStreamExt};
 use rustemon::{
     Follow,
     client::RustemonClient,
@@ -11,6 +10,11 @@ use rustemon::{
     },
 };
 use tera::Tera;
+
+use crate::{
+    progress_bar::{ProgressBar, ProgressBarMult},
+    workers::start_workers,
+};
 
 mod index;
 mod pokemon;
@@ -40,34 +44,24 @@ pub async fn generate_rustedex(
     gc: GeneratorContext,
     dev: bool,
 ) -> anyhow::Result<()> {
-    let mt = MultiProgress::new();
-    let sty = ProgressStyle::with_template(
-        "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}",
-    )?
-    .progress_chars("##-");
+    let pgm = ProgressBarMult::new()?;
 
-    let pokemon_species = get_all_pokemon_species(
-        &gc,
-        dev,
-        mt.add(ProgressBar::hidden().with_style(sty.clone())),
-    )
-    .await?;
+    let pokemon_species = get_all_pokemon_species(&gc, dev, pgm.progress_bar()).await?;
 
-    index::generate(
-        rustedex_path,
-        gc.clone(),
-        &pokemon_species,
-        mt.add(ProgressBar::hidden().with_style(sty.clone())),
-    )
-    .await?;
-
-    pokemon::generate(
-        rustedex_path.join("pokemon"),
-        gc,
-        pokemon_species.as_slice(),
-        mt.add(ProgressBar::hidden().with_style(sty.clone())),
-    )
-    .await?;
+    tokio::try_join!(
+        index::generate(
+            rustedex_path,
+            gc.clone(),
+            &pokemon_species,
+            pgm.progress_bar(),
+        ),
+        pokemon::generate(
+            rustedex_path.join("pokemon"),
+            gc,
+            pokemon_species.as_slice(),
+            pgm.progress_bar(),
+        )
+    )?;
 
     Ok(())
 }
@@ -79,57 +73,22 @@ async fn get_all_pokemon_species(
 ) -> anyhow::Result<Vec<Arc<PokemonSpecie>>> {
     let mut pokemon_entries = rustemon::pokemon::pokemon::get_all_entries(&gc.rc).await?;
     if dev {
-        pokemon_entries.truncate(500);
+        pokemon_entries.truncate(20);
     }
 
-    pg.set_length(pokemon_entries.len() as u64);
-    pg.set_message("Fetching Pokemons");
-    pg.set_draw_target(ProgressDrawTarget::stdout());
+    pg.setup(pokemon_entries.len() as u64, "Fetching Pokemons");
 
-    let (npt_sndr, npt_rcvr) = flume::unbounded::<NamedApiResource<Pokemon>>();
-    let (tpt_sndr, tpt_rcvr) = flume::unbounded::<anyhow::Result<PokemonSpecie>>();
-
-    let generate_pokemon_specie = async |pokemon_entry: NamedApiResource<Pokemon>,
-                                         rc: &RustemonClient|
-           -> anyhow::Result<Option<PokemonSpecie>> {
-        let pokemon = pokemon_entry.follow(rc).await?;
-        if pokemon.is_default {
-            let specie = pokemon.species.follow(rc).await?;
-            Ok(Some(PokemonSpecie {
-                p: pokemon,
-                s: specie,
-            }))
-        } else {
-            Ok(None)
-        }
-    };
-
-    for _ in 0..20 {
-        let rc = Arc::clone(&gc.rc);
-        let inner_npt_rcvr = npt_rcvr.clone();
-        let inner_tpt_sndr = tpt_sndr.clone();
-        let inner_pg = pg.clone();
-
-        tokio::spawn(async move {
-            while let Ok(pe) = inner_npt_rcvr.recv_async().await {
-                match generate_pokemon_specie(pe, &rc).await {
-                    Ok(Some(pc)) => inner_tpt_sndr.send_async(Ok(pc)).await.unwrap(),
-                    Ok(None) => (),
-                    Err(err) => inner_tpt_sndr.send_async(Err(err)).await.unwrap(),
-                }
-                inner_pg.inc(1);
-            }
-        });
-    }
+    let (named_input, sp_output) =
+        start_workers(20, &pg, generate_pokemon_specie, Arc::clone(&gc.rc));
 
     for pokemon_entry in pokemon_entries {
-        npt_sndr.send_async(pokemon_entry).await?;
+        named_input.send_async(pokemon_entry).await?;
     }
-    drop(npt_sndr);
-    drop(tpt_sndr);
+    drop(named_input);
 
-    let mut pokemon_species: Vec<Arc<PokemonSpecie>> = tpt_rcvr
+    let mut pokemon_species: Vec<Arc<PokemonSpecie>> = sp_output
         .into_stream()
+        .filter_map(|r| async { r.transpose() })
         .map_ok(Arc::new)
         .try_collect()
         .await?;
@@ -138,6 +97,22 @@ async fn get_all_pokemon_species(
     pg.finish();
 
     Ok(pokemon_species)
+}
+
+async fn generate_pokemon_specie(
+    pokemon_entry: NamedApiResource<Pokemon>,
+    rc: Arc<RustemonClient>,
+) -> anyhow::Result<Option<PokemonSpecie>> {
+    let pokemon = pokemon_entry.follow(&rc).await?;
+    if pokemon.is_default {
+        let specie = pokemon.species.follow(&rc).await?;
+        Ok(Some(PokemonSpecie {
+            p: pokemon,
+            s: specie,
+        }))
+    } else {
+        Ok(None)
+    }
 }
 
 trait FindTrad

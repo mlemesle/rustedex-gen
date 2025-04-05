@@ -1,10 +1,11 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-use futures_util::{TryStreamExt, stream};
-use indicatif::{ProgressBar, ProgressDrawTarget};
+use futures_util::TryStreamExt;
 use rustemon::Follow;
 use serde::Serialize;
 use tokio::fs;
+
+use crate::{progress_bar::ProgressBar, workers::start_workers};
 
 use super::{FindTrad, GeneratorContext, PokemonSpecie};
 
@@ -41,26 +42,30 @@ pub(super) async fn generate(
     pokemon_species: &[Arc<PokemonSpecie>],
     pg: ProgressBar,
 ) -> anyhow::Result<()> {
-    pg.set_length(pokemon_species.len() as u64);
-    pg.set_message("Generating pokemon pages");
-    pg.set_draw_target(ProgressDrawTarget::stdout());
-    stream::FuturesUnordered::from_iter(pokemon_species.iter().map(async |ps| {
-        generate_pokemon_id(p.clone(), gc.clone(), Arc::clone(ps), pg.clone()).await
-    }))
-    .try_collect::<()>()
-    .await?;
+    pg.setup(pokemon_species.len() as u64, "Generating pokemon pages");
+
+    let (ps_input, res_output) =
+        start_workers(20, &pg, generate_pokemon_id, PokemonContext { p, gc });
+
+    for ps in pokemon_species {
+        ps_input.send_async(Arc::clone(ps)).await?;
+    }
+    drop(ps_input);
+
+    res_output.into_stream().try_collect::<()>().await?;
 
     pg.finish();
 
     Ok(())
 }
 
-async fn generate_pokemon_id(
+#[derive(Clone)]
+struct PokemonContext {
     p: PathBuf,
     gc: GeneratorContext,
-    ps: Arc<PokemonSpecie>,
-    pg: ProgressBar,
-) -> anyhow::Result<()> {
+}
+
+async fn generate_pokemon_id(ps: Arc<PokemonSpecie>, pc: PokemonContext) -> anyhow::Result<()> {
     let (Some(name), Some(french_name), Some(japanese_name), Some(japanese_romanized)) =
         ps.s.names
             .iter()
@@ -81,32 +86,32 @@ async fn generate_pokemon_id(
 
     let mut abilities = Vec::with_capacity(ps.p.abilities.len());
     for a in &ps.p.abilities {
-        let aa = a.ability.follow(&gc.rc).await?;
+        let aa = a.ability.follow(&pc.gc.rc).await?;
         abilities.push(aa.names.find_trad("ability", ps.p.id)?);
     }
 
     let mut egg_groups = Vec::with_capacity(ps.s.egg_groups.len());
     for eg in &ps.s.egg_groups {
-        let egg = eg.follow(&gc.rc).await?;
+        let egg = eg.follow(&pc.gc.rc).await?;
         egg_groups.push(egg.names.find_trad("egg group", ps.p.id)?);
     }
 
     let mut effort_points = HashMap::new();
     for stat in ps.p.stats.iter().filter(|s| s.effort > 0) {
-        let s = stat.stat.follow(&gc.rc).await?;
+        let s = stat.stat.follow(&pc.gc.rc).await?;
         let k = s.names.find_trad("stat", ps.p.id)?;
         effort_points.insert(k, stat.effort);
     }
 
     let exp_at_100 =
         ps.s.growth_rate
-            .follow(&gc.rc)
+            .follow(&pc.gc.rc)
             .await?
             .levels
             .iter()
             .find_map(|gr| (gr.level == 100).then_some(gr.experience))
             .ok_or_else(|| anyhow::anyhow!("No experience at lvl 100 for {}", ps.p.id))?;
-    let c = ps.s.color.follow(&gc.rc).await?;
+    let c = ps.s.color.follow(&pc.gc.rc).await?;
     let color = c.names.find_trad("color", ps.p.id)?;
     let sprite =
         ps.p.sprites
@@ -136,12 +141,12 @@ async fn generate_pokemon_id(
         capture_rate: ps.s.capture_rate,
     };
 
-    let f = fs::File::create(p.join(format!("{}.html", ps.p.id)))
+    let f = fs::File::create(pc.p.join(format!("{}.html", ps.p.id)))
         .await?
         .into_std()
         .await;
 
-    gc.t.render_to(
+    pc.gc.t.render_to(
         "pokemon.html.tera",
         &tera::Context::from_serialize(Context {
             page_title: name,
@@ -149,8 +154,6 @@ async fn generate_pokemon_id(
         })?,
         f,
     )?;
-
-    pg.inc(1);
 
     Ok(())
 }

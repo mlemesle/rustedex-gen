@@ -1,104 +1,102 @@
 {% extends "base.html.tera" %}
 {% block content %}
-    <div class="container mx-auto mt-8 px-4 sm:px-6 lg:px-8">
-        <div class="pokemon-card pokemon-page bg-white border border-gray-200 rounded-xl p-3 sm:p-4 shadow-md hover:shadow-lg transition-all duration-200">
-            <div class="flex flex-col sm:flex-row items-center gap-6">
-                <!-- Sprite -->
-                <img src="{{ pokemon.sprite }}" alt="{{ pokemon.name }}" class="w-48 h-48 sm:w-64 sm:h-64 md:w-96 md:h-96" loading="lazy">
+    <div class="pokemon-card pokemon-page bg-white border border-gray-200 rounded-xl p-3 sm:p-4 shadow-md hover:shadow-lg transition-all duration-200 max-w-6xl sm:max-w-6xl mx-auto">
+        <div class="flex flex-col sm:flex-row items-center gap-6">
+            <!-- Sprite -->
+            <img src="{{ pokemon.sprite }}" alt="{{ pokemon.name }}" class="w-40 h-40 sm:w-48 sm:h-48 md:w-64 md:h-64" loading="lazy">
 
-                <!-- Details -->
-                <div class="flex-1 text-gray-900">
-                    <!-- Name Section -->
-                    <h1 class="text-3xl sm:text-4xl font-semibold">
-                        {{ pokemon.name }}
-                        <span class="text-xl sm:text-2xl font-normal text-gray-600">
-                            (French: {{ pokemon.french_name }}, Japanese: {{ pokemon.japanese_name }} {{ pokemon.japanese_romanized }})
-                        </span>
-                    </h1>
+            <!-- Details -->
+            <div class="flex-1 text-gray-900">
+                <!-- Name Section -->
+                <h1 class="text-3xl sm:text-4xl font-semibold">
+                    {{ pokemon.name }}
+                    <span class="text-xl sm:text-2xl font-normal text-gray-600">
+                        (French: {{ pokemon.french_name }}, Japanese: {{ pokemon.japanese_name }} {{ pokemon.japanese_romanized }})
+                    </span>
+                </h1>
 
-                    <!-- Info Grid -->
-                    <dl class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-base sm:text-lg">
-                        <!-- Types -->
-                        <div class="flex items-baseline gap-2">
-                            <dt class="font-semibold text-gray-800">Types:</dt>
-                            <dd>
-                                {% for type in pokemon.types %}
-                                    <span class="inline-block px-2 py-1 text-sm font-medium text-white rounded-full {{ type | lower | replace(from=" ", to="-") }}">{{ type | capitalize }}</span>
-                                {% endfor %}
-                            </dd>
-                        </div>
+                <!-- Info Grid -->
+                <dl class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-base sm:text-lg">
+                    <!-- Types -->
+                    <div class="flex items-baseline gap-2 flex-nowrap">
+                        <dt class="font-semibold text-gray-800 whitespace-nowrap">Types:</dt>
+                        <dd class="flex flex-wrap gap-2">
+                            {% for type in pokemon.types %}
+                                <span class="inline-block px-2 py-1 text-sm font-medium text-white rounded-full {{ type | lower | replace(from=" ", to="-") }}">{{ type | capitalize }}</span>
+                            {% endfor %}
+                        </dd>
+                    </div>
 
-                        <!-- Genus -->
-                        <div class="flex items-baseline gap-2">
-                            <dt class="font-semibold text-gray-800">Genus:</dt>
-                            <dd>{{ pokemon.genus }}</dd>
-                        </div>
+                    <!-- Genus -->
+                    <div class="flex items-baseline gap-2 flex-nowrap">
+                        <dt class="font-semibold text-gray-800 whitespace-nowrap">Genus:</dt>
+                        <dd>{{ pokemon.genus }}</dd>
+                    </div>
 
-                        <!-- Height -->
-                        <div class="flex items-baseline gap-2">
-                            <dt class="font-semibold text-gray-800">Height:</dt>
-                            <dd>{{ pokemon.height | round(method="floor", precision=2) }} m</dd>
-                        </div>
+                    <!-- Height -->
+                    <div class="flex items-baseline gap-2 flex-nowrap">
+                        <dt class="font-semibold text-gray-800 whitespace-nowrap">Height:</dt>
+                        <dd>{{ pokemon.height | round(method="floor", precision=2) }} m</dd>
+                    </div>
 
-                        <!-- Weight -->
-                        <div class="flex items-baseline gap-2">
-                            <dt class="font-semibold text-gray-800">Weight:</dt>
-                            <dd>{{ pokemon.weight | round(method="floor", precision=2) }} kg</dd>
-                        </div>
+                    <!-- Weight -->
+                    <div class="flex items-baseline gap-2 flex-nowrap">
+                        <dt class="font-semibold text-gray-800 whitespace-nowrap">Weight:</dt>
+                        <dd>{{ pokemon.weight | round(method="floor", precision=2) }} kg</dd>
+                    </div>
 
-                        <!-- Abilities -->
-                        <div class="flex items-baseline gap-2">
-                            <dt class="font-semibold text-gray-800">Abilities:</dt>
-                            <dd>{{ pokemon.abilities | join(sep=", ") }}</dd>
-                        </div>
+                    <!-- Abilities -->
+                    <div class="flex items-baseline gap-2 flex-nowrap">
+                        <dt class="font-semibold text-gray-800 whitespace-nowrap">Abilities:</dt>
+                        <dd>{{ pokemon.abilities | join(sep=", ") }}</dd>
+                    </div>
 
-                        <!-- Egg Groups -->
-                        <div class="flex items-baseline gap-2">
-                            <dt class="font-semibold text-gray-800">Egg Groups:</dt>
-                            <dd>{{ pokemon.egg_groups | join(sep=", ") }}</dd>
-                        </div>
+                    <!-- Egg Groups -->
+                    <div class="flex items-baseline gap-2 flex-nowrap">
+                        <dt class="font-semibold text-gray-800 whitespace-nowrap">Egg Groups:</dt>
+                        <dd>{{ pokemon.egg_groups | join(sep=", ") }}</dd>
+                    </div>
 
-                        <!-- Egg Hatch Steps -->
-                        <div class="flex items-baseline gap-2">
-                            <dt class="font-semibold text-gray-800">Egg Hatch Steps:</dt>
-                            <dd>{{ pokemon.egg_hatch_steps }} steps</dd>
-                        </div>
+                    <!-- Egg Hatch Steps -->
+                    <div class="flex items-baseline gap-2 flex-nowrap">
+                        <dt class="font-semibold text-gray-800 whitespace-nowrap">Egg Hatch Steps:</dt>
+                        <dd>{{ pokemon.egg_hatch_steps }} steps</dd>
+                    </div>
 
-                        <!-- Effort Points -->
-                        <div class="flex items-baseline gap-2">
-                            <dt class="font-semibold text-gray-800">Effort Points:</dt>
-                            <dd>
-                                {% for stat, value in pokemon.effort_points %}
-                                    <span class="inline-block px-2 py-1 text-sm font-medium text-white rounded-full effort-{{ stat | lower | replace(from=" ", to="-") }}">{{ stat }} +{{ value }}</span>
-                                {% endfor %}
-                            </dd>
-                        </div>
+                    <!-- Effort Points -->
+                    <div class="flex items-baseline gap-2 flex-nowrap">
+                        <dt class="font-semibold text-gray-800 whitespace-nowrap">Effort Points:</dt>
+                        <dd class="flex flex-wrap gap-2">
+                            {% for stat, value in pokemon.effort_points %}
+                                <span class="inline-block px-2 py-1 text-sm font-medium text-white rounded-full effort-{{ stat | lower | replace(from=" ", to="-") }}">{{ stat }} +{{ value }}</span>
+                            {% endfor %}
+                        </dd>
+                    </div>
 
-                        <!-- Base Experience -->
-                        <div class="flex items-baseline gap-2">
-                            <dt class="font-semibold text-gray-800">Base Experience:</dt>
-                            <dd>{{ pokemon.base_experience }} exp</dd>
-                        </div>
+                    <!-- Base Experience -->
+                    <div class="flex items-baseline gap-2 flex-nowrap">
+                        <dt class="font-semibold text-gray-800 whitespace-nowrap">Base Experience:</dt>
+                        <dd>{{ pokemon.base_experience }} exp</dd>
+                    </div>
 
-                        <!-- Experience at Level 100 -->
-                        <div class="flex items-baseline gap-2">
-                            <dt class="font-semibold text-gray-800">Exp at Level 100:</dt>
-                            <dd>{{ pokemon.exp_at_100 }} exp</dd>
-                        </div>
+                    <!-- Experience at Level 100 -->
+                    <div class="flex items-baseline gap-2 flex-nowrap">
+                        <dt class="font-semibold text-gray-800 whitespace-nowrap">Exp at Level 100:</dt>
+                        <dd>{{ pokemon.exp_at_100 }} exp</dd>
+                    </div>
 
-                        <!-- Color -->
-                        <div class="flex items-baseline gap-2">
-                            <dt class="font-semibold text-gray-800">Color:</dt>
-                            <dd>{{ pokemon.color | capitalize }}</dd>
-                        </div>
+                    <!-- Color -->
+                    <div class="flex items-baseline gap-2 flex-nowrap">
+                        <dt class="font-semibold text-gray-800 whitespace-nowrap">Color:</dt>
+                        <dd>{{ pokemon.color | capitalize }}</dd>
+                    </div>
 
-                        <!-- Capture Rate -->
-                        <div class="flex items-baseline gap-2">
-                            <dt class="font-semibold text-gray-800">Capture Rate:</dt>
-                            <dd>{{ pokemon.capture_rate }}</dd>
-                        </div>
-                    </dl>
-                </div>
+                    <!-- Capture Rate -->
+                    <div class="flex items-baseline gap-2 flex-nowrap">
+                        <dt class="font-semibold text-gray-800 whitespace-nowrap">Capture Rate:</dt>
+                        <dd>{{ pokemon.capture_rate }}</dd>
+                    </div>
+                </dl>
             </div>
         </div>
     </div>
