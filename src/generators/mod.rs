@@ -46,20 +46,21 @@ pub async fn generate_rustedex(
 ) -> anyhow::Result<()> {
     let pgm = ProgressBarMult::new()?;
 
-    let pokemon_species = get_all_pokemon_species(&gc, dev, pgm.progress_bar()).await?;
+    let pokemon_species =
+        get_all_pokemon_species(&gc, dev, pgm.progress_bar("Fetching Pokemons")).await?;
 
     tokio::try_join!(
         index::generate(
             rustedex_path,
             gc.clone(),
             &pokemon_species,
-            pgm.progress_bar(),
+            pgm.progress_bar("Generating cards for index"),
         ),
         pokemon::generate(
             rustedex_path.join("pokemon"),
             gc,
             pokemon_species.as_slice(),
-            pgm.progress_bar(),
+            pgm.progress_bar("Generating pokemon pages"),
         )
     )?;
 
@@ -73,10 +74,10 @@ async fn get_all_pokemon_species(
 ) -> anyhow::Result<Vec<Arc<PokemonSpecie>>> {
     let mut pokemon_entries = rustemon::pokemon::pokemon::get_all_entries(&gc.rc).await?;
     if dev {
-        pokemon_entries.truncate(20);
+        pokemon_entries.truncate(1000);
     }
 
-    pg.setup(pokemon_entries.len() as u64, "Fetching Pokemons");
+    pg.set_length(pokemon_entries.len() as u64);
 
     let (named_input, sp_output) =
         start_workers(20, &pg, generate_pokemon_specie, Arc::clone(&gc.rc));

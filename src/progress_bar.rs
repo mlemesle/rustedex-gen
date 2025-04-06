@@ -1,4 +1,4 @@
-use indicatif::{MultiProgress, ProgressDrawTarget, ProgressStyle};
+use indicatif::{MultiProgress, ProgressStyle};
 
 pub struct ProgressBarMult {
     mt: MultiProgress,
@@ -16,10 +16,12 @@ impl ProgressBarMult {
         Ok(Self { mt, st })
     }
 
-    pub fn progress_bar(&self) -> ProgressBar {
-        let pg = self
-            .mt
-            .add(indicatif::ProgressBar::hidden().with_style(self.st.clone()));
+    pub fn progress_bar(&self, msg: &'static str) -> ProgressBar {
+        let pg = self.mt.add(
+            indicatif::ProgressBar::no_length()
+                .with_message(msg)
+                .with_style(self.st.clone()),
+        );
 
         ProgressBar(pg)
     }
@@ -29,10 +31,8 @@ impl ProgressBarMult {
 pub struct ProgressBar(indicatif::ProgressBar);
 
 impl ProgressBar {
-    pub fn setup(&self, len: u64, msg: &'static str) {
+    pub fn set_length(&self, len: u64) {
         self.0.set_length(len);
-        self.0.set_message(msg);
-        self.0.set_draw_target(ProgressDrawTarget::stdout());
     }
 
     pub fn tick(&self) {

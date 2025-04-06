@@ -28,7 +28,7 @@ pub(super) async fn generate(
     pokemon_species: &[Arc<PokemonSpecie>],
     pg: ProgressBar,
 ) -> anyhow::Result<()> {
-    pg.setup(pokemon_species.len() as u64, "Generating cards for index");
+    pg.set_length(pokemon_species.len() as u64);
     let pokemon_cards = pokemon_species
         .iter()
         .map(|ps| {

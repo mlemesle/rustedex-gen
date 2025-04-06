@@ -34,6 +34,21 @@ struct PokemonId<'a> {
     exp_at_100: i64,
     color: &'a str,
     capture_rate: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    gender_ratios: Option<GenderRatios>,
+    cries: Cries<'a>,
+}
+
+#[derive(Serialize)]
+struct GenderRatios {
+    male: f32,
+    female: f32,
+}
+
+#[derive(Serialize)]
+struct Cries<'a> {
+    legacy: Option<&'a str>,
+    latest: Option<&'a str>,
 }
 
 pub(super) async fn generate(
@@ -42,7 +57,7 @@ pub(super) async fn generate(
     pokemon_species: &[Arc<PokemonSpecie>],
     pg: ProgressBar,
 ) -> anyhow::Result<()> {
-    pg.setup(pokemon_species.len() as u64, "Generating pokemon pages");
+    pg.set_length(pokemon_species.len() as u64);
 
     let (ps_input, res_output) =
         start_workers(20, &pg, generate_pokemon_id, PokemonContext { p, gc });
@@ -120,6 +135,13 @@ async fn generate_pokemon_id(ps: Arc<PokemonSpecie>, pc: PokemonContext) -> anyh
             .front_default
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("No sprite for {}", ps.p.id))?;
+    let gender_ratios = (ps.s.gender_rate != -1).then(|| {
+        let female = ps.s.gender_rate as f32 * 12.5;
+        GenderRatios {
+            female,
+            male: 100.0 - female,
+        }
+    });
 
     let pokemon = PokemonId {
         sprite,
@@ -139,6 +161,11 @@ async fn generate_pokemon_id(ps: Arc<PokemonSpecie>, pc: PokemonContext) -> anyh
         exp_at_100,
         color: color.as_str(),
         capture_rate: ps.s.capture_rate,
+        gender_ratios,
+        cries: Cries {
+            legacy: ps.p.cries.legacy.as_deref(),
+            latest: ps.p.cries.latest.as_deref(),
+        },
     };
 
     let f = fs::File::create(pc.p.join(format!("{}.html", ps.p.id)))

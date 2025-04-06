@@ -73,6 +73,21 @@
                         </dd>
                     </div>
 
+                    <!-- Gender Ratio -->
+                    <div class="flex items-baseline gap-2 flex-nowrap">
+                        <dt class="font-semibold text-gray-800 whitespace-nowrap">Gender Ratio:</dt>
+                        <dd class="w-full max-w-xs">
+                            {% if pokemon.gender_ratios is undefined %}
+                                <span class="text-gray-600">Genderless</span>
+                            {% else %}
+                                <div class="relative w-full h-4 bg-gray-200 rounded-full overflow-hidden">
+                                    <div class="absolute h-full bg-blue-500" style="width: {{ pokemon.gender_ratios.male }}%" title="Male: {{ pokemon.gender_ratios.male }}%"></div>
+                                    <div class="absolute h-full bg-pink-500" style="width: {{ pokemon.gender_ratios.female }}%; left: {{ pokemon.gender_ratios.male }}%" title="Female: {{ pokemon.gender_ratios.female }}%"></div>
+                                </div>
+                            {% endif %}
+                        </dd>
+                    </div>
+
                     <!-- Base Experience -->
                     <div class="flex items-baseline gap-2 flex-nowrap">
                         <dt class="font-semibold text-gray-800 whitespace-nowrap">Base Experience:</dt>
@@ -97,6 +112,33 @@
                         <dd>{{ pokemon.capture_rate }}</dd>
                     </div>
                 </dl>
+
+                <!-- Pokémon Cries -->
+                <div class="mt-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Cries</h3>
+                    <div class="space-y-4">
+                        <!-- Legacy Cry -->
+                        <div>
+                            <label class="text-base font-medium text-gray-700">Legacy Cry:</label>
+                            <audio controls class="w-full max-w-md mt-1" {% if pokemon.cries.legacy is not defined %}disabled{% endif %}>
+                                {% if pokemon.cries.legacy is defined %}
+                                    <source src="{{ pokemon.cries.legacy }}" type="audio/ogg">
+                                {% endif %}
+                                Your browser does not support the audio element.
+                            </audio>
+                        </div>
+                        <!-- Latest Cry -->
+                        <div>
+                            <label class="text-base font-medium text-gray-700">Latest Cry:</label>
+                            <audio controls class="w-full max-w-md mt-1" {% if pokemon.cries.latest is not defined %}disabled{% endif %}>
+                                {% if pokemon.cries.latest is defined %}
+                                    <source src="{{ pokemon.cries.latest }}" type="audio/ogg">
+                                {% endif %}
+                                Your browser does not support the audio element.
+                            </audio>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
