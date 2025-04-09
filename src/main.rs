@@ -23,7 +23,7 @@ async fn main() -> anyhow::Result<()> {
 
     println!("Generating Rustedex...");
     let now = Instant::now();
-    generators::generate_rustedex(&args.export_path, gc, args.dev).await?;
+    generators::generate_rustedex(&args.export_path, &gc, args.dev).await?;
     println!("Generated static files in {:?}", now.elapsed());
 
     if args.dev {

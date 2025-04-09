@@ -24,7 +24,7 @@ struct PokemonCard<'a> {
 
 pub(super) async fn generate(
     p: &Path,
-    gc: GeneratorContext,
+    gc: &GeneratorContext,
     pokemon_species: &[Arc<PokemonSpecie>],
     pg: ProgressBar,
 ) -> anyhow::Result<()> {
