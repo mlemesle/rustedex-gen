@@ -5,7 +5,8 @@ use rustemon::Follow;
 use serde::Serialize;
 use tokio::fs;
 
-use crate::{progress_bar::ProgressBar, workers::start_workers};
+use futures_util::stream;
+use crate::progress_bar::ProgressBar;
 
 use super::{FindTrad, GeneratorContext, PokemonSpecie};
 
@@ -53,21 +54,17 @@ struct Cries<'a> {
 
 pub(super) async fn generate(
     p: PathBuf,
-    gc: GeneratorContext,
+    gc: &GeneratorContext,
     pokemon_species: &[Arc<PokemonSpecie>],
     pg: ProgressBar,
 ) -> anyhow::Result<()> {
     pg.set_length(pokemon_species.len() as u64);
-
-    let (ps_input, res_output) =
-        start_workers(20, &pg, generate_pokemon_id, PokemonContext { p, gc });
-
-    for ps in pokemon_species {
-        ps_input.send_async(Arc::clone(ps)).await?;
-    }
-    drop(ps_input);
-
-    res_output.into_stream().try_collect::<()>().await?;
+    // pg.set_draw_target(ProgressDrawTarget::stdout());
+    stream::FuturesUnordered::from_iter(pokemon_species.iter().map(|ps: &Arc<PokemonSpecie>|
+        generate_pokemon_id(Arc::clone(ps), PokemonContext { p: p.clone(),  gc  } )
+    ))
+    .try_collect::<()>()
+    .await?;
 
     pg.finish();
 
@@ -75,12 +72,12 @@ pub(super) async fn generate(
 }
 
 #[derive(Clone)]
-struct PokemonContext {
+struct PokemonContext<'a> {
     p: PathBuf,
-    gc: GeneratorContext,
+    gc: &'a GeneratorContext,
 }
 
-async fn generate_pokemon_id(ps: Arc<PokemonSpecie>, pc: PokemonContext) -> anyhow::Result<()> {
+async fn generate_pokemon_id<'a>(ps: Arc<PokemonSpecie>, pc: PokemonContext<'a>) -> anyhow::Result<()> {
     let (Some(name), Some(french_name), Some(japanese_name), Some(japanese_romanized)) =
         ps.s.names
             .iter()
